@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Налаштування</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+
+        form {
+            column-gap: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            max-width: 800px;
+        }
+
+        button[type="submit"] {
+            grid-column: 1/-1;
+            margin-top: 20px;
+        }
+
+        .flexField {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .blockInput label {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+{{- /*gotype: github.com/d-andrii/spotify-playback.IndexData*/ -}}
+<form action="/save">
+    <fieldset>
+        <legend>Пристрій</legend>
+
+        {{range .Devices}}
+            <div class="flexField">
+                <label for="{{.ID}}">{{.Name}}</label>
+                <input type="radio" name="device" id="{{.ID}}" value="{{.ID}}"
+                       {{if eq .ID $.CurrentDevice}}checked{{end}} />
+            </div>
+        {{end}}
+    </fieldset>
+
+    <fieldset>
+        <legend>Статус плеєру</legend>
+
+        <div class="flexField">
+            <label for="playing">Активний</label>
+            <input type="radio" name="status" id="playing" value="play"
+                   {{if eq .CurrentState "play"}}checked{{end}} />
+        </div>
+
+        <div class="flexField">
+            <label for="paused">Пауза</label>
+            <input type="radio" name="status" id="paused" value="pause"
+                   {{if eq .CurrentState "pause"}}checked{{end}} />
+        </div>
+    </fieldset>
+
+
+    <fieldset>
+        <legend>Автостарт</legend>
+
+        <div class="blockInput">
+            <label for="startTime">Почати</label>
+            <input type="time" name="startTime" id="startTime" value="{{.StartTime}}"/>
+        </div>
+
+        <div class="blockInput">
+            <label for="endTime">Закінчити</label>
+            <input type="time" name="endTime" id="endTime" value="{{.EndTime}}"/>
+        </div>
+    </fieldset>
+
+    <button type="submit">Зберегти</button>
+</form>
+</body>
+</html>
