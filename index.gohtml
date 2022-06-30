@@ -4,9 +4,19 @@
     <meta charset="UTF-8">
     <title>Налаштування</title>
 
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600&amp;display=swap" rel="stylesheet">
+
     <style>
         body {
-            font-family: sans-serif;
+            --primary: #065740;
+
+            align-items: center;
+            display: flex;
+            font-family: Mulish, sans-serif;
+            justify-content: center;
+            margin: 0;
+            min-height: 100vh;
+            padding: 0;
         }
 
         form {
@@ -14,11 +24,35 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             max-width: 800px;
+            width: 100%;
         }
 
-        button[type="submit"] {
+        input {
+            accent-color: var(--primary);
+        }
+
+        button {
+            all: unset;
+            background-color: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: inline-block;
+            padding: 10px;
+            text-align: center;
+        }
+
+        button[type='submit'] {
             grid-column: 1/-1;
             margin-top: 20px;
+        }
+
+        fieldset {
+            border-color: var(--primary);
+        }
+
+        legend {
+            color: var(--primary);
+            font-weight: bold;
         }
 
         .flexField {

@@ -124,11 +124,13 @@ func (sc *Client) SetPlayerStatus(ctx context.Context, active bool) error {
 	id := spotify.ID(sc.device)
 	opts := spotify.PlayOptions{DeviceID: &id}
 
+	log.Printf("%+v", ps)
+
 	if active && !ps.Playing {
 		if err := sc.client.PlayOpt(ctx, &opts); err != nil {
 			return err
 		}
-	} else if ps.Playing {
+	} else if !active && ps.Playing {
 		if err := sc.client.PauseOpt(ctx, &opts); err != nil {
 			return err
 		}
