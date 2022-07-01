@@ -1,12 +1,14 @@
 package main
 
 import (
+	"github.com/getsentry/sentry-go"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"os/exec"
 	"runtime"
+	"time"
 
 	"github.com/d-andrii/spotify-playback/helper"
 	"github.com/d-andrii/spotify-playback/spotify"
@@ -30,6 +32,7 @@ var spotifyClient = spotify.New()
 
 func check(action string, err error) {
 	if err != nil {
+		sentry.CaptureException(err)
 		log.Fatalf("failed to %s: %v\n", action, err)
 	}
 }
@@ -37,6 +40,7 @@ func check(action string, err error) {
 func status(w http.ResponseWriter, action string, code int, err error) bool {
 	if err != nil {
 		log.Printf("failed to %s: %v\n", action, err)
+		sentry.CaptureException(err)
 		w.WriteHeader(code)
 		_, _ = io.WriteString(w, err.Error())
 
@@ -72,6 +76,17 @@ func handleSave(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              "https://9fabaa56be03478db940886f40668c6a@o1304179.ingest.sentry.io/6544256",
+		TracesSampleRate: 1.0,
+		AttachStacktrace: true,
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+
+	defer sentry.Flush(2 * time.Second)
+
 	t, err := template.New("main").Parse(IndexTemplate)
 	check("parse template", err)
 

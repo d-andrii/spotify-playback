@@ -3,6 +3,7 @@ package spotify
 import (
 	"context"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"github.com/robfig/cron/v3"
 	"log"
 	"net/http"
@@ -59,10 +60,12 @@ func New() Client {
 
 	if err := sc.GetFromConfig(); err != nil {
 		log.Println(err)
+		sentry.CaptureException(err)
 	}
 
 	if err := sc.SetSchedulerTime("10:00", "22:00"); err != nil {
 		log.Println(err)
+		sentry.CaptureException(err)
 	}
 
 	return sc
@@ -163,16 +166,20 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", st.Minute(), st.Hour()), func() {
+		sentry.CaptureMessage("startTime scheduled is triggered")
 		if err := sc.SetPlayerStatus(true); err != nil {
 			log.Println(err)
+			sentry.CaptureException(err)
 		}
 	}); err != nil {
 		return err
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", et.Minute(), et.Hour()), func() {
+		sentry.CaptureMessage("endTime scheduled is triggered")
 		if err := sc.SetPlayerStatus(false); err != nil {
 			log.Println(err)
+			sentry.CaptureException(err)
 		}
 	}); err != nil {
 		return err
@@ -180,6 +187,7 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 
 	if err := sc.SaveConfig(); err != nil {
 		log.Println(err)
+		sentry.CaptureException(err)
 	}
 
 	return nil
