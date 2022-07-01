@@ -115,7 +115,9 @@ func (sc *Client) SetDevice(device string) {
 	}
 }
 
-func (sc *Client) SetPlayerStatus(ctx context.Context, active bool) error {
+func (sc *Client) SetPlayerStatus(active bool) error {
+	ctx := context.Background()
+
 	ps, err := sc.client.PlayerState(ctx)
 	if err != nil {
 		return err
@@ -123,8 +125,6 @@ func (sc *Client) SetPlayerStatus(ctx context.Context, active bool) error {
 
 	id := spotify.ID(sc.device)
 	opts := spotify.PlayOptions{DeviceID: &id}
-
-	log.Printf("%+v", ps)
 
 	if active && !ps.Playing {
 		if err := sc.client.PlayOpt(ctx, &opts); err != nil {
@@ -163,7 +163,7 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", st.Minute(), st.Hour()), func() {
-		if err := sc.SetPlayerStatus(context.Background(), true); err != nil {
+		if err := sc.SetPlayerStatus(true); err != nil {
 			log.Println(err)
 		}
 	}); err != nil {
@@ -171,7 +171,7 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", et.Minute(), et.Hour()), func() {
-		if err := sc.SetPlayerStatus(context.Background(), false); err != nil {
+		if err := sc.SetPlayerStatus(false); err != nil {
 			log.Println(err)
 		}
 	}); err != nil {

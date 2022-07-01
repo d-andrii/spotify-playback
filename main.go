@@ -1,15 +1,16 @@
 package main
 
 import (
-	"github.com/d-andrii/spotify-playback/helper"
-	"github.com/d-andrii/spotify-playback/spotify"
-	spotifySource "github.com/zmb3/spotify/v2"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"os/exec"
 	"runtime"
+
+	"github.com/d-andrii/spotify-playback/helper"
+	"github.com/d-andrii/spotify-playback/spotify"
+	spotifySource "github.com/zmb3/spotify/v2"
 
 	_ "embed"
 )
@@ -36,8 +37,8 @@ func check(action string, err error) {
 func status(w http.ResponseWriter, action string, code int, err error) bool {
 	if err != nil {
 		log.Printf("failed to %s: %v\n", action, err)
-		_, _ = io.WriteString(w, err.Error())
 		w.WriteHeader(code)
+		_, _ = io.WriteString(w, err.Error())
 
 		return true
 	}
@@ -60,8 +61,12 @@ func handleSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spotifyClient.SetDevice(r.FormValue("device"))
-	status(w, "set player status", http.StatusInternalServerError, spotifyClient.SetPlayerStatus(r.Context(), r.FormValue("status") == "play"))
-	status(w, "set scheduler time", http.StatusInternalServerError, spotifyClient.SetSchedulerTime(r.FormValue("startTime"), r.FormValue("endTime")))
+	if status(w, "set player status", http.StatusInternalServerError, spotifyClient.SetPlayerStatus(r.FormValue("status") == "play")) {
+		return
+	}
+	if status(w, "set scheduler time", http.StatusInternalServerError, spotifyClient.SetSchedulerTime(r.FormValue("startTime"), r.FormValue("endTime"))) {
+		return
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -96,6 +101,8 @@ func main() {
 	http.HandleFunc("/save", handleSave)
 
 	url := spotifyClient.GetAuthUrl()
+
+	log.Println(url)
 
 	switch runtime.GOOS {
 	case "linux":
