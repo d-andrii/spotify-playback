@@ -166,7 +166,6 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", st.Minute(), st.Hour()), func() {
-		sentry.CaptureMessage("startTime scheduled is triggered")
 		if err := sc.SetPlayerStatus(true); err != nil {
 			log.Println(err)
 			sentry.CaptureException(err)
@@ -176,7 +175,6 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", et.Minute(), et.Hour()), func() {
-		sentry.CaptureMessage("endTime scheduled is triggered")
 		if err := sc.SetPlayerStatus(false); err != nil {
 			log.Println(err)
 			sentry.CaptureException(err)
