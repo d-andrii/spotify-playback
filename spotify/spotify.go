@@ -73,7 +73,7 @@ func New() Client {
 }
 
 func (sc *Client) HandleCallback(r *http.Request) error {
-	tok, err := auth.Token(r.Context(), state, r)
+	tok, err := auth.Token(context.Background(), state, r)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (sc *Client) HandleCallback(r *http.Request) error {
 		return fmt.Errorf("state mismatch: %s != %s", st, state)
 	}
 
-	sc.client = spotify.New(auth.Client(r.Context(), tok))
+	sc.client = spotify.New(auth.Client(context.Background(), tok))
 	sc.ch <- true
 	close(sc.ch)
 
