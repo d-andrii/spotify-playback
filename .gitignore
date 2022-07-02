@@ -1,4 +1,4 @@
 config.json
 .env
 /bin
-.log
+*.log
