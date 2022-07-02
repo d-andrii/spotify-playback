@@ -2,12 +2,11 @@ package main
 
 import (
 	"github.com/getsentry/sentry-go"
+	"github.com/pkg/browser"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
-	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/d-andrii/spotify-playback/helper"
@@ -119,13 +118,9 @@ func main() {
 
 	log.Println(url)
 
-	switch runtime.GOOS {
-	case "linux":
-		_ = exec.Command("xdg-open", url).Start()
-	case "windows":
-		_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		_ = exec.Command("open", url).Start()
+	if err := browser.OpenURL(url); err != nil {
+		log.Println(err)
+		sentry.CaptureException(err)
 	}
 
 	check("start http server", http.ListenAndServe(":4613", nil))

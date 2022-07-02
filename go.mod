@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/getsentry/sentry-go v0.13.0
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/zmb3/spotify/v2 v2.2.1
 )

@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/d-andrii/spotify-playback/rand"
@@ -59,13 +60,13 @@ func New() Client {
 	}
 
 	if err := sc.GetFromConfig(); err != nil {
-		log.Println(err)
 		sentry.CaptureException(err)
+		log.Fatal(err)
 	}
 
 	if err := sc.SetSchedulerTime("10:00", "22:00"); err != nil {
-		log.Println(err)
 		sentry.CaptureException(err)
+		log.Fatal(err)
 	}
 
 	return sc
@@ -83,6 +84,29 @@ func (sc *Client) HandleCallback(r *http.Request) error {
 	sc.client = spotify.New(auth.Client(r.Context(), tok))
 	sc.ch <- true
 	close(sc.ch)
+
+	prev := ""
+	if _, err := sc.cron.AddFunc("@every 10s", func() {
+		if sc.client != nil {
+			ps, err := sc.client.PlayerState(context.Background())
+			if err != nil {
+				log.Println(err)
+				sentry.CaptureException(err)
+				return
+			}
+
+			if ps.CurrentlyPlaying.Item != nil && prev != ps.CurrentlyPlaying.Item.ID.String() {
+				prev = ps.CurrentlyPlaying.Item.ID.String()
+				var as []string
+				for _, a := range ps.CurrentlyPlaying.Item.Artists {
+					as = append(as, a.Name)
+				}
+				log.Printf("%s by %s is playing on %s\n", ps.CurrentlyPlaying.Item.Name, strings.Join(as, ", "), ps.Device.Name)
+			}
+		}
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -119,9 +143,7 @@ func (sc *Client) SetDevice(device string) {
 }
 
 func (sc *Client) SetPlayerStatus(active bool) error {
-	ctx := context.Background()
-
-	ps, err := sc.client.PlayerState(ctx)
+	ps, err := sc.client.PlayerState(context.Background())
 	if err != nil {
 		return err
 	}
@@ -130,11 +152,11 @@ func (sc *Client) SetPlayerStatus(active bool) error {
 	opts := spotify.PlayOptions{DeviceID: &id}
 
 	if active && !ps.Playing {
-		if err := sc.client.PlayOpt(ctx, &opts); err != nil {
+		if err := sc.client.PlayOpt(context.Background(), &opts); err != nil {
 			return err
 		}
 	} else if !active && ps.Playing {
-		if err := sc.client.PauseOpt(ctx, &opts); err != nil {
+		if err := sc.client.PauseOpt(context.Background(), &opts); err != nil {
 			return err
 		}
 	}
