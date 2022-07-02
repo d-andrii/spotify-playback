@@ -77,15 +77,6 @@ func handleSave(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	logFile, err := os.OpenFile("./SpotifyPlayback.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logFile.Close()
-
-	log.SetOutput(logFile)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              "https://9fabaa56be03478db940886f40668c6a@o1304179.ingest.sentry.io/6544256",
 		TracesSampleRate: 1.0,
@@ -119,6 +110,15 @@ func setupTray() {
 }
 
 func onReady() {
+	logFile, err := os.OpenFile("./SpotifyPlayback.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logFile.Close()
+
+	log.SetOutput(logFile)
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+
 	setupTray()
 
 	t, err := template.New("main").Parse(IndexTemplate)
