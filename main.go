@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/getlantern/systray"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/browser"
 	"html/template"
@@ -84,7 +85,32 @@ func main() {
 		log.Fatalf("sentry.Init: %s", err)
 	}
 
-	defer sentry.Flush(2 * time.Second)
+	systray.Run(onReady, onExit)
+}
+
+func setupTray() {
+	systray.SetTitle("Spotify Playback")
+	mStgs := systray.AddMenuItem("Налаштування", "Відкрити налаштування у браузері")
+	systray.AddSeparator()
+	mQuit := systray.AddMenuItem("Вийти", "Закрити застосунок")
+
+	go func() {
+		for {
+			select {
+			case <-mQuit.ClickedCh:
+				systray.Quit()
+			case <-mStgs.ClickedCh:
+				if err := browser.OpenURL("http://localhost:4613"); err != nil {
+					log.Println(err)
+					sentry.CaptureException(err)
+				}
+			}
+		}
+	}()
+}
+
+func onReady() {
+	setupTray()
 
 	t, err := template.New("main").Parse(IndexTemplate)
 	check("parse template", err)
@@ -124,4 +150,8 @@ func main() {
 	}
 
 	check("start http server", http.ListenAndServe(":4613", nil))
+}
+
+func onExit() {
+	sentry.Flush(2 * time.Second)
 }
