@@ -98,7 +98,7 @@ func main() {
 }
 
 func setupTray() {
-	systray.SetTitle("Spotify Playback")
+	systray.SetIcon(helper.Icon)
 	mStgs := systray.AddMenuItem("Налаштування", "Відкрити налаштування у браузері")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Вийти", "Закрити застосунок")
