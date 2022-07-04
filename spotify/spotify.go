@@ -85,29 +85,6 @@ func (sc *Client) HandleCallback(r *http.Request) error {
 	sc.ch <- true
 	close(sc.ch)
 
-	prev := ""
-	if _, err := sc.cron.AddFunc("@every 10s", func() {
-		if sc.client != nil {
-			ps, err := sc.client.PlayerState(context.Background())
-			if err != nil {
-				log.Println(err)
-				sentry.CaptureException(err)
-				return
-			}
-
-			if ps.CurrentlyPlaying.Item != nil && prev != ps.CurrentlyPlaying.Item.ID.String() {
-				prev = ps.CurrentlyPlaying.Item.ID.String()
-				var as []string
-				for _, a := range ps.CurrentlyPlaying.Item.Artists {
-					as = append(as, a.Name)
-				}
-				log.Printf("%s by %s is playing on %s\n", ps.CurrentlyPlaying.Item.Name, strings.Join(as, ", "), ps.Device.Name)
-			}
-		}
-	}); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -200,6 +177,29 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 		if err := sc.SetPlayerStatus(false); err != nil {
 			log.Println(err)
 			sentry.CaptureException(err)
+		}
+	}); err != nil {
+		return err
+	}
+
+	prev := ""
+	if _, err := sc.cron.AddFunc("@every 10s", func() {
+		if sc.client != nil {
+			ps, err := sc.client.PlayerState(context.Background())
+			if err != nil {
+				log.Println(err)
+				sentry.CaptureException(err)
+				return
+			}
+
+			if ps.CurrentlyPlaying.Item != nil && prev != ps.CurrentlyPlaying.Item.ID.String() {
+				prev = ps.CurrentlyPlaying.Item.ID.String()
+				var as []string
+				for _, a := range ps.CurrentlyPlaying.Item.Artists {
+					as = append(as, a.Name)
+				}
+				log.Printf("%s by %s is playing on %s\n", ps.CurrentlyPlaying.Item.Name, strings.Join(as, ", "), ps.Device.Name)
+			}
 		}
 	}); err != nil {
 		return err

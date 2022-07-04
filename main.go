@@ -32,6 +32,7 @@ var IndexTemplate string
 var spotifyClient = spotify.New()
 
 func check(action string, err error) {
+	log.Printf("trying to %s\n", action)
 	if err != nil {
 		sentry.CaptureException(err)
 		log.Fatalf("failed to %s: %v\n", action, err)
@@ -39,6 +40,7 @@ func check(action string, err error) {
 }
 
 func status(w http.ResponseWriter, action string, code int, err error) bool {
+	log.Printf("trying to %s\n", action)
 	if err != nil {
 		log.Printf("failed to %s: %v\n", action, err)
 		sentry.CaptureException(err)
@@ -77,6 +79,16 @@ func handleSave(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	logFile, err := os.OpenFile("./SpotifyPlayback.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logFile.Close()
+
+	log.SetOutput(logFile)
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+
+	log.Println("Main")
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              "https://9fabaa56be03478db940886f40668c6a@o1304179.ingest.sentry.io/6544256",
 		TracesSampleRate: 1.0,
@@ -85,6 +97,7 @@ func main() {
 		log.Fatalf("sentry.Init: %s", err)
 	}
 
+	log.Println("Starting tray")
 	systray.Run(onReady, onExit)
 }
 
@@ -93,6 +106,8 @@ func setupTray() {
 	mStgs := systray.AddMenuItem("Налаштування", "Відкрити налаштування у браузері")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Вийти", "Закрити застосунок")
+
+	log.Println("Setting up tray handlers")
 
 	go func() {
 		for {
@@ -110,15 +125,6 @@ func setupTray() {
 }
 
 func onReady() {
-	logFile, err := os.OpenFile("./SpotifyPlayback.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logFile.Close()
-
-	log.SetOutput(logFile)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
-
 	setupTray()
 
 	t, err := template.New("main").Parse(IndexTemplate)

@@ -2,6 +2,7 @@ package spotify
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/d-andrii/spotify-playback/helper"
 	"os"
 )
@@ -15,7 +16,7 @@ func (sc *Client) GetFromConfig() error {
 	var c Config
 	d, err := os.ReadFile("config.json")
 	if err != nil {
-		return helper.If(err == os.ErrNotExist, nil, err)
+		return helper.If(errors.Is(err, os.ErrNotExist), nil, err)
 	}
 
 	if err := json.Unmarshal(d, &c); err != nil {
