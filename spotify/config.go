@@ -1,13 +1,17 @@
 package spotify
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/d-andrii/spotify-playback/helper"
+	"github.com/zmb3/spotify/v2"
+	"golang.org/x/oauth2"
 	"os"
 )
 
 type Config struct {
+	Token  *oauth2.Token
 	Device string
 	Time   TimeRange
 }
@@ -25,12 +29,26 @@ func (sc *Client) GetFromConfig() error {
 
 	sc.device = c.Device
 	sc.time = c.Time
+	if c.Token != nil {
+		sc.client = spotify.New(auth.Client(context.Background(), c.Token))
+		sc.ch <- true
+		close(sc.ch)
+	}
 
 	return nil
 }
 
 func (sc *Client) SaveConfig() error {
+	var t *oauth2.Token
+	var err error
+	if sc.client != nil {
+		if t, err = sc.client.Token(); err != nil {
+			return err
+		}
+	}
+
 	d, err := json.Marshal(Config{
+		Token:  t,
 		Device: sc.device,
 		Time:   sc.time,
 	})

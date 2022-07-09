@@ -31,11 +31,17 @@ var IndexTemplate string
 
 var spotifyClient = spotify.New()
 
-func check(action string, err error) {
+const baseURL = "http://localhost:4613"
+
+func check(action string, err error, noFatal bool) {
 	log.Printf("trying to %s\n", action)
 	if err != nil {
 		sentry.CaptureException(err)
-		log.Fatalf("failed to %s: %v\n", action, err)
+		if noFatal {
+			log.Printf("failed to %s: %v\n", action, err)
+		} else {
+			log.Fatalf("failed to %s: %v\n", action, err)
+		}
 	}
 }
 
@@ -115,7 +121,7 @@ func setupTray() {
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 			case <-mStgs.ClickedCh:
-				if err := browser.OpenURL("http://localhost:4613"); err != nil {
+				if err := browser.OpenURL(baseURL); err != nil {
 					log.Println(err)
 					sentry.CaptureException(err)
 				}
@@ -128,7 +134,7 @@ func onReady() {
 	setupTray()
 
 	t, err := template.New("main").Parse(IndexTemplate)
-	check("parse template", err)
+	check("parse template", err, false)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		client := spotifyClient.GetClient()
@@ -144,18 +150,27 @@ func onReady() {
 
 		st := spotifyClient.GetSchedulerTime()
 
+		err = spotifyClient.SaveConfig()
+		status(w, "save config", http.StatusInternalServerError, err)
+
 		check("execute template", t.Execute(w, IndexData{
 			Devices:       devices,
 			CurrentDevice: device,
 			CurrentState:  helper.If(p.Playing, "play", "pause"),
 			StartTime:     st.StartTime,
 			EndTime:       st.EndTime,
-		}))
+		}), true)
 	})
 	http.HandleFunc("/callback", handleCallback)
 	http.HandleFunc("/save", handleSave)
 
-	url := spotifyClient.GetAuthUrl()
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", helper.Mime)
+		_, err := w.Write(helper.Icon)
+		check("write icon", err, true)
+	})
+
+	url := helper.If(spotifyClient.IsClientAvailable(), baseURL, spotifyClient.GetAuthUrl())
 
 	log.Println(url)
 
@@ -164,7 +179,7 @@ func onReady() {
 		sentry.CaptureException(err)
 	}
 
-	check("start http server", http.ListenAndServe(":4613", nil))
+	check("start http server", http.ListenAndServe(":4613", nil), false)
 }
 
 func onExit() {

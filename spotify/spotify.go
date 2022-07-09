@@ -3,6 +3,7 @@ package spotify
 import (
 	"context"
 	"fmt"
+	"github.com/d-andrii/spotify-playback/helper"
 	"github.com/getsentry/sentry-go"
 	"github.com/robfig/cron/v3"
 	"log"
@@ -64,7 +65,10 @@ func New() Client {
 		log.Fatal(err)
 	}
 
-	if err := sc.SetSchedulerTime("10:00", "22:00"); err != nil {
+	if err := sc.SetSchedulerTime(
+		helper.If(sc.time.StartTime == "", "10:00", sc.time.StartTime),
+		helper.If(sc.time.EndTime == "", "22:00", sc.time.EndTime),
+	); err != nil {
 		sentry.CaptureException(err)
 		log.Fatal(err)
 	}
@@ -85,6 +89,10 @@ func (sc *Client) HandleCallback(r *http.Request) error {
 	sc.ch <- true
 	close(sc.ch)
 
+	if err := sc.SaveConfig(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -97,6 +105,10 @@ func (sc *Client) GetClient() *spotify.Client {
 		<-sc.ch
 	}
 	return sc.client
+}
+
+func (sc *Client) IsClientAvailable() bool {
+	return sc.client != nil
 }
 
 func (sc *Client) GetDevice(ctx context.Context) (string, error) {
@@ -115,6 +127,7 @@ func (sc *Client) GetDevice(ctx context.Context) (string, error) {
 func (sc *Client) SetDevice(device string) {
 	sc.device = device
 	if err := sc.SaveConfig(); err != nil {
+		sentry.CaptureException(err)
 		log.Println(err)
 	}
 }
