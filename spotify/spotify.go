@@ -113,7 +113,9 @@ func (sc *Client) IsClientAvailable() bool {
 
 func (sc *Client) GetDevice(ctx context.Context) (string, error) {
 	if sc.device == "" {
-		p, err := sc.client.PlayerState(ctx)
+		p, err := helper.Retry(func() (*spotify.PlayerState, error) {
+			return sc.client.PlayerState(ctx)
+		}, 3)
 		if err != nil {
 			return "", err
 		}
@@ -133,7 +135,9 @@ func (sc *Client) SetDevice(device string) {
 }
 
 func (sc *Client) SetPlayerStatus(active bool) error {
-	ps, err := sc.client.PlayerState(context.Background())
+	ps, err := helper.Retry(func() (*spotify.PlayerState, error) {
+		return sc.client.PlayerState(context.Background())
+	}, 3)
 	if err != nil {
 		return err
 	}
@@ -142,11 +146,15 @@ func (sc *Client) SetPlayerStatus(active bool) error {
 	opts := spotify.PlayOptions{DeviceID: &id}
 
 	if active && !ps.Playing {
-		if err := sc.client.PlayOpt(context.Background(), &opts); err != nil {
+		if _, err := helper.Retry(func() (*interface{}, error) {
+			return nil, sc.client.PlayOpt(context.Background(), &opts)
+		}, 3); err != nil {
 			return err
 		}
 	} else if !active && ps.Playing {
-		if err := sc.client.PauseOpt(context.Background(), &opts); err != nil {
+		if _, err := helper.Retry(func() (*interface{}, error) {
+			return nil, sc.client.PauseOpt(context.Background(), &opts)
+		}, 3); err != nil {
 			return err
 		}
 	}
@@ -178,6 +186,7 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", st.Minute(), st.Hour()), func() {
+		sentry.CaptureMessage("Running start scheduler")
 		if err := sc.SetPlayerStatus(true); err != nil {
 			log.Println(err)
 			sentry.CaptureException(err)
@@ -187,6 +196,7 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	if _, err = sc.cron.AddFunc(fmt.Sprintf("%d %d * * *", et.Minute(), et.Hour()), func() {
+		sentry.CaptureMessage("Running stop scheduler")
 		if err := sc.SetPlayerStatus(false); err != nil {
 			log.Println(err)
 			sentry.CaptureException(err)
@@ -196,9 +206,11 @@ func (sc *Client) SetSchedulerTime(startTime string, endTime string) error {
 	}
 
 	prev := ""
-	if _, err := sc.cron.AddFunc("@every 10s", func() {
+	if _, err := sc.cron.AddFunc("@every 30s", func() {
 		if sc.client != nil {
-			ps, err := sc.client.PlayerState(context.Background())
+			ps, err := helper.Retry(func() (*spotify.PlayerState, error) {
+				return sc.client.PlayerState(context.Background())
+			}, 3)
 			if err != nil {
 				log.Println(err)
 				sentry.CaptureException(err)
